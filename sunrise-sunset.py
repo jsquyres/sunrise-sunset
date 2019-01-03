@@ -7,6 +7,19 @@
 # pip install pytz
 # pip install ics
 #
+# pip yelled at me that I got the latest arrow (0.12.something) and it
+# was incompatible with ics (it wanted some exact 0.4.somethin version
+# of arrow).  But it still seemed to produce good enough ICS files
+# that imported just fine into Google Calendar.
+#
+# NOTE: Don't try to import more than a year or two of ICS data to
+# Google Calendar at a time.  I tried to import a 5-year ICS file and
+# it complained / said it coulnd't import.  But then later some (most?
+# all?) of them showed up on the Google calendar anyway.  I suspect
+# that there was some kind of timeout in the UI and the import might
+# have fully worked... but you might want to just stay away from those
+# kind of large imports to avoid ambiguities / duplicate entries, just
+# to be safe.
 
 import os
 import pytz
@@ -35,13 +48,14 @@ local_tz_name = 'America/Louisville'
 local_tz      = pytz.timezone(local_tz_name)
 
 # Semi-arbitrarily select a year's worth of dates
-start_date = datetime.datetime(year=2018, month=12, day=23,
+start_date = datetime.datetime(year=2025, month=1, day=1,
                                tzinfo=local_tz)
-stop_date  = datetime.datetime(year=2019, month=12, day=31,
+stop_date  = datetime.datetime(year=2025, month=12, day=31,
                                tzinfo=local_tz)
 
 # The times I want lights to turn on
-on_time    = datetime.time(hour=6, minute=30)
+am_on_time    = datetime.time(hour=6,  minute=30)
+pm_off_time   = datetime.time(hour=23, minute=15)
 
 ################################################################
 
@@ -101,19 +115,35 @@ while d <= stop_date:
     start = datetime.datetime(year=d.year,
                               month=d.month,
                               day=d.day,
-                              hour=on_time.hour,
-                              minute=on_time.minute,
+                              hour=am_on_time.hour,
+                              minute=am_on_time.minute,
                               tzinfo=sunrise.tzinfo)
 
     if sunrise - start > delta_15m:
-        event = Event()
-        event.name = "Morning landscaping lights"
+        event       = Event()
+        event.name  = "Morning landscaping lights"
         event.begin = arrow.get(start)
-        event.end = arrow.get(sunrise)
+        event.end   = arrow.get(sunrise)
         calendar.events.add(event)
         num_events += 1
-        print("Event: {start} - {end}"
+        print("AM on event: {start} - {end}"
               .format(start=start, end=sunrise))
+
+    # Make sure to use the same timezone as the computed sunrise time
+    stop = datetime.datetime(year=d.year,
+                             month=d.month,
+                             day=d.day,
+                             hour=pm_off_time.hour,
+                             minute=pm_off_time.minute,
+                             tzinfo=sunrise.tzinfo)
+    event       = Event()
+    event.name  = "Evening landscaping lights"
+    event.begin = arrow.get(sunset)
+    event.end   = arrow.get(stop)
+    calendar.events.add(event)
+    num_events += 1
+    print("PM off event: {start} - {end}"
+          .format(start=sunset, end=stop))
 
     d += one_day
 
