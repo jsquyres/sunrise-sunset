@@ -95,12 +95,12 @@ num_events = 0
 #--------------------------------
 
 print("Looping over dates...")
-d = start_date
+d    = start_date
+func = almanac.sunrise_sunset(planets, here))
 while d <= stop_date:
     t1 = ts.utc(d)
     t2 = ts.utc(d + one_day)
-    times, _ = almanac.find_discrete(t1, t2,
-                                     almanac.sunrise_sunset(planets, here))
+    times, _ = almanac.find_discrete(t1, t2, func)
 
     sunrise = times[0].astimezone(local_tz)
     sunset  = times[1].astimezone(local_tz)
