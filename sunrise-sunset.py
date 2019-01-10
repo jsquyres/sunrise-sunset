@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
 #
+# Simple-ish script to generate events.ics: a file containing a series
+# of calendar events for when I want landscaping lights on in the
+# morning and again on in the evening.
+#
+# Generally turn on at 6:30am in the morning and turn off at sunrise
+# (except when sunrise is before 6:45am), and turn on again at sunset
+# and turn off at 11:15pm.
+#
+# I didn't use argparse to pass in command line arguments -- just edit
+# the script below to fill in the values that you want.
+#
 # Needs:
 #
 # pip install skyfield
@@ -26,8 +37,7 @@ import pytz
 import arrow
 import datetime
 
-from skyfield import api
-from skyfield import almanac
+from skyfield import api, almanac
 from ics import Calendar, Event
 
 ################################################################
@@ -36,21 +46,21 @@ from ics import Calendar, Event
 
 # This is a standard filename for planetary positions.  You probably
 # don't want to change this filename.
-filename  = 'de421.bsp'
+filename      = 'de421.bsp'
 
 # Obtained from Google Maps (roughly the center of downtown
 # Louisville)
-longitude = 38.258865
-latitude  = -85751557
+longitude     = 38.251505
+latitude      = 85.758796
 
 # My local timezone name.
 local_tz_name = 'America/Louisville'
 local_tz      = pytz.timezone(local_tz_name)
 
 # Semi-arbitrarily select a year's worth of dates
-start_date = datetime.datetime(year=2025, month=1, day=1,
+start_date    = datetime.datetime(year=2019, month=1, day=1,
                                tzinfo=local_tz)
-stop_date  = datetime.datetime(year=2025, month=12, day=31,
+stop_date     = datetime.datetime(year=2019, month=12, day=31,
                                tzinfo=local_tz)
 
 # The times I want lights to turn on
@@ -83,20 +93,19 @@ ts = api.load.timescale()
 #--------------------------------
 
 print("Seting up constants...")
-one_day = datetime.timedelta(days=1)
-
 here = api.Topos('{l} N'.format(l=longitude),
                  '{l} W'.format(l=latitude))
 
-calendar   = Calendar()
-delta_15m  = datetime.timedelta(minutes=15)
-num_events = 0
+calendar        = Calendar()
+one_day         = datetime.timedelta(days=1)
+fifteen_minutes = datetime.timedelta(minutes=15)
+num_events      = 0
 
 #--------------------------------
 
 print("Looping over dates...")
 d    = start_date
-func = almanac.sunrise_sunset(planets, here))
+func = almanac.sunrise_sunset(planets, here)
 while d <= stop_date:
     t1 = ts.utc(d)
     t2 = ts.utc(d + one_day)
@@ -119,7 +128,7 @@ while d <= stop_date:
                               minute=am_on_time.minute,
                               tzinfo=sunrise.tzinfo)
 
-    if sunrise - start > delta_15m:
+    if sunrise - start >= fifteen_minutes:
         event       = Event()
         event.name  = "Morning landscaping lights"
         event.begin = arrow.get(start)
